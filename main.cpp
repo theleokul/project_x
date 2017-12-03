@@ -4,19 +4,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#define N_GEN 500 // Amount of generations
-#define N 6 // Amount of members in one generation
-#define K 4 // Amount of variables
-#define MIN 0 // Min value of variable
-#define MAX 30 // Max value of variable
+#include <fstream>
+#define DIM 4
+#define N_GEN 2000 // Amount of generations
+#define N 24 // Amount of members in one generation
+#define MIN -60 // Min value of variable
+#define MAX 60 // Max value of variable
 #define MUT 20 // Coefficient of mutation in percentage
-#define EPS 1.0 // It's a value of suitable mistake
+#define EPS 3.0 // It's a value of suitable mistake
 using namespace std;
 
 //Prototypes of all functions in program
-double func(double x1, double x2, double x3, double x4); // investigated function
-void cross_prob(vector<double> &surv, int &p1, int &p2, bool &crossoveer); // Chooses the most suitable(with highest surv.) parents (p1 & p2)
-void def_surv(vector<double> &surv, vector<double> &mem, double &sum, int i); // Defines the survival coef. each member in generation
+//double func(double x1, double x2, double x3, double x4); // investigated function
+double mult_AiX(vector<double> &ai, vector<double> &x); // Solves linear equation with i-line matrix A and x(has column form)
+void cross_prob(vector<double> &surv, int &p1, int &p2, bool &crossover); // Chooses the most suitable(with highest surv.) parents (p1 & p2)
+void def_surv(vector<double> &surv, vector<double> &mem, vector<double> &ai, int i); // Defines the survival coef. each member in generation
 void mutation(vector<double> &mem); // All members go to mutation - their alelles changes randomly
 double random(); // Returns a random double number in range of MIN to MAX
 
@@ -24,13 +26,40 @@ int main()
 {
     srand(time(0));
     vector< vector<double> > gen(N, vector<double>());
+    vector< vector<double> > a(DIM, vector<double>());
     vector<double> surv(N);
+    ifstream f;
+    char filename[100];
     bool crossover=false; // In domain of chosen parents counts their probability to pairing
     bool the_end=false; // Means that the solution was found
 
+    //Open the file and scan it
+    cout << "Input name of file with matrix A: ";
+    cin >> filename;
+    f.open(filename);
+    if (!f.is_open()) { // If file is not opened
+        cout << "There is a mistake, make sure you entered the correct name of file and try again!\n";
+        return 1;
+    }
+
+    double temp;
+    for(int i=0;i<DIM;i++) {
+        for(int j=0;j<(DIM+1);j++) {
+            f >> temp;
+            a[i].push_back(temp);
+        }
+    }
+    f.close();
+
+    /* for(int i=0;i<DIM;i++) {
+        for(int j=0;j<(DIM+1);j++)
+            printf("%.2f   ",a[i][j]);
+        cout << '\n';
+        } */
+
     // Creation of first generation
     for(int i=0;i<N;i++)
-        for(int j=0;j<K;j++)
+        for(int j=0;j<DIM;j++)
             gen[i].push_back(random());
 
 // There begins iteration process
@@ -39,7 +68,11 @@ int main()
         // Definition of survival coefficients
         double sum = 0.0;
         for(int i=0;i<N;i++) {
-            def_surv(surv, gen[i], sum, i);
+            for(int j=0;j<DIM;j++) {
+                surv[i]+=fabs(mult_AiX(a[j],gen[i]));
+                //def_surv(surv, gen[i], a[j], i);
+            }
+            sum += 1/surv[i];
         }
         for(int i=0;i<N;i++)
             surv[i] = (1/surv[i])/sum;
@@ -61,13 +94,13 @@ int main()
         {
             cross_prob(surv, p1, p2, crossover);
             if(crossover) {
-                div_cross = 1 + rand() % (K-1);
+                div_cross = 1 + rand() % (DIM-1);
                 which_size_change = rand() % 2;
                 if(!which_size_change)
                     for(int i=0;i<div_cross;i++)
                         swap(gen[p1][i],gen[p2][i]);
                 else
-                    for(int i=div_cross;i<K;i++)
+                    for(int i=div_cross;i<DIM;i++)
                         swap(gen[p1][i],gen[p2][i]);
             }
             crossover = false;
@@ -95,12 +128,18 @@ int main()
             printf("%.2f   ",gen[i][j]);
         cout << '\n';
         } */
-        for(int i=0;i<N;i++)
-            if( func(gen[i][0], gen[i][1], gen[i][2], gen[i][3]) < EPS ) {
-                printf("x1 = %.2f\nx2 = %.2f\nx3 = %.2f\nx4 = %.2f", gen[i][0], gen[i][1], gen[i][2], gen[i][3]);
+        for(int i=0;i<N;i++) {
+            double check = 0.0;
+            for(int j=0;j<DIM;j++)
+                check+=fabs(mult_AiX(a[j],gen[i]));
+            if( check < EPS ) {
+                for(int j=0;j<DIM;j++)
+                    printf("x%d = %.2f\n", j, gen[i][j]);
                 the_end = true;
                 break;
             }
+
+        }
         if(the_end) break;
     }
 
@@ -109,19 +148,28 @@ int main()
 
 void mutation(vector<double> &mem)
 {
-    for(int i=0;i<K;i++)
+    for(int i=0;i<DIM;i++)
         if( MUT/(1 + rand() % 100) ) mem[i] = random();
 }
 
-void def_surv(vector<double> &surv, vector<double> &mem, double &sum, int i) // mem = memasik :) or member or chromosome
+void def_surv(vector<double> &surv, vector<double> &mem, vector<double> &ap, int i) // mem = memasik :) or member or chromosome
 {
-    surv[i] = fabs(func(mem[0], mem[1], mem[2], mem[3])); // Later I should modify it for more variables
-    sum += 1/surv[i];
+    surv[i]+=fabs(mult_AiX(ap,mem));
+    //surv[i] = fabs(func(mem[0], mem[1], mem[2], mem[3])); // Later I should modify it for more variables
 }
 
-double func(double x1, double x2, double x3, double x4)
+/* double func(double x1, double x2, double x3, double x4)
 {
     return x1+2*x2+3*x3+4*x4-30;
+} */
+
+double mult_AiX(vector<double> &ai, vector<double> &x)
+{
+    double result=0;
+    for(int j=0;j<DIM;j++)
+        result+=ai[j]*x[j];
+    result-=ai[DIM];
+    return result;
 }
 
 double random()
