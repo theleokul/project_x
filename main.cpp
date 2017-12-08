@@ -10,7 +10,7 @@
 #define MIN -60 // Min value of variable
 #define MAX 60 // Max value of variable
 #define MUT 20 // Coefficient of mutation in percentage
-#define EPS 3.0 // It's a value of suitable mistake
+#define EPS 0.99 // It's a value of suitable mistake
 using namespace std;
 
 int dim;
@@ -18,7 +18,7 @@ int dim;
 //Prototypes of all functions in program
 double mult_AiX(vector<double> &ai, vector<double> &x); // Solves linear equation with i-line matrix A and x(has column form)
 void cross_prob(vector<double> &surv, int &p1, int &p2, bool &crossover); // Chooses the most suitable(with highest surv.) parents (p1 & p2)
-void mutation(vector<double> &mem); // All members go to mutation - their alelles changes randomly
+void mutation(vector<double> &mem); // All members go to mutation - their alelles(values) changes randomly
 double random(); // Returns a random double number in range of MIN to MAX
 
 int main()
@@ -36,8 +36,9 @@ int main()
     int suit_sol; // Number of suitable member in all gen's
     int cond; // It's for switch
 
-    cout << "Program for solving system of linear equations. Version: 1.01. Made by XaKer333." << endl;
-    cout << "Choose 1-3:" << endl << "1 - Input matrix A from file;" << endl << "2 - Input matrix A in console;" << endl << "3 - Help." << endl;
+    cout << "Program for solving system of linear equations. Version: 1.02. Made by XaKer333." << endl;
+    loop: // It's the first label for GOTO, of course it's also the last
+    cout << "Choose 0-3:" << endl << "1 - Input matrix A from file;" << endl << "2 - Input matrix A in console;" << endl << "3 - Help;" << endl << "0 - Exit." << endl;
     cin >> cond;
     switch(cond) {
         case 1: //Open the file and scan it
@@ -50,7 +51,6 @@ int main()
                 }
 
                 f >> dim;
-                //vector< vector<double> > a(dim, vector<double>());
                 double temp;
                 for(int i=0;i<dim;i++) {
                     for(int j=0;j<(dim+1);j++) {
@@ -73,9 +73,10 @@ int main()
                 }
                 cout << "It was successfully scanned!" << endl << "Loading..." << endl;
                 break; }
-        case 3: { cout << "This program solves Ax=b systems,\n" << "-- A - square matrix with dimension dim(<=10), also matrix A is extended (b is included);\n";
-                cout << "-- x - vector-column;\n"; return 3; }
-        default: { cout << "Incorrect input, try again!"; return 2; }
+        case 3: { cout << "This program solves Ax=b systems,\n" << "-- A - square matrix with dimension dim(<=10 - it can be changed in source code), also matrix A is extended (b is included);\n";
+                cout << "-- x - vector-column;\n"; goto loop; }
+        case 0: { return 0; }
+        default: { cout << "Incorrect input, try again!\n"; goto loop; }
     }
 
     // Creation of first generation
@@ -84,14 +85,12 @@ int main()
             gen[i].push_back(random());
 
 // There begins iteration process
-
     for(int t=0;t<N_GEN;t++) {
         // Definition of survival coefficients
         sum = 0.0;
         for(int i=0;i<N;i++) {
             for(int j=0;j<dim;j++) {
                 surv[i]+=fabs(mult_AiX(a[j],gen[i]));
-                //def_surv(surv, gen[i], a[j], i);
             }
             sum += 1/surv[i];
         }
@@ -130,7 +129,7 @@ int main()
                 check+=fabs(mult_AiX(a[j],gen[i]));
             if(check < suit_defect) { suit_defect = check; suit_sol = i; }
             if( check < EPS ) {
-                cout << "Amount of spent generations: " << t << endl;
+                cout << "Amount of spent generations to find a solution: " << t << endl;
                 for(int j=0;j<dim;j++)
                     printf("x%d = %.2f\n", j, gen[i][j]);
                 the_end = true;
