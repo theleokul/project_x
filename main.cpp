@@ -13,7 +13,7 @@
 #define EPS 0.99 // It's a value of suitable mistake
 using namespace std;
 
-int dim;
+int dim; //dimension of x - member of population
 
 //Prototypes of all functions in program
 double mult_AiX(vector<double> &ai, vector<double> &x); // Solves linear equation with i-line matrix A and x(has column form)
@@ -24,9 +24,9 @@ double random(); // Returns a random double number in range of MIN to MAX
 int main()
 {
     srand(time(0));
-    vector< vector<double> > gen(N, vector<double>());
-    vector<double> surv(N);
-    vector< vector<double> > a(10, vector<double>());
+    vector< vector<double> > gen(N, vector<double>()); // Population
+    vector<double> surv(N); // Table of survival coefficients each member of  population
+    vector< vector<double> > a(10, vector<double>()); // Table A
     ifstream f;
     char filename[100];
     bool crossover=false; // In domain of chosen parents counts their probability to pairing
@@ -36,7 +36,7 @@ int main()
     int suit_sol; // Number of suitable member in all gen's
     int cond; // It's for switch
 
-    cout << "Program for solving system of linear equations. Version: 1.02. Made by XaKer333." << endl;
+    cout << "Program for solving system of linear equations. Version: 1.02." << endl;
     loop: // It's the first label for GOTO, of course it's also the last
     cout << "Choose 0-3:" << endl << "1 - Input matrix A from file;" << endl << "2 - Input matrix A in console;" << endl << "3 - Help;" << endl << "0 - Exit." << endl;
     cin >> cond;
