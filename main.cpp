@@ -5,14 +5,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <fstream>
-#define N_GEN 10000 // Amount of generations
+#define N_GEN 50000 // Amount of generations
 #define N 30 // Amount of members in one generation
 #define D 101 // Max available dimension
-#define MIN -10 // Min value of variable
-#define MAX 10 // Max value of variable
-#define MUT 30 // Coefficient of mutation in percentage
+#define MIN -30 // Min value of variable
+#define MAX 30 // Max value of variable
+#define MUT 40 // Coefficient of mutation in percentage
 //#define EPS 500 // It's a value of suitable mistake
-#define EPS2 0.1 // Defect in 1 equation
+#define EPS2 0.01 // Defect in 1 equation
 #define EPS_SYM 0.1
 using namespace std;
 
@@ -83,6 +83,7 @@ int main()
 
     int amount_of_all_childs=2*(dim-1);
     vector<double> bad_sol(dim);
+    vector< vector<double> > new_gen(N, vector<double>(dim));
     vector< vector<double> > future_childs(amount_of_all_childs, vector<double>(dim));
     int best_child1 = -1, best_child2 = -1, p1 = 0, p2 = 0;
     double dtemp, nevas_p1 = 0.0, nevas_p2 = 0.0, dmin, check, bad_defect = LONG_MAX, bad_defect_temp;
@@ -96,10 +97,12 @@ int main()
     for(int m=0;m<N_GEN;m++) {
         // Definition of survival coefficients
         //if(m==1) cout << m << endl;
+        new_gen = gen;
+        int new_gen_count=0;
         sum = 0.0;
         for(int i=0;i<N;i++) {
             for(int j=0;j<dim;j++) {
-                if(fabs(mult_AiX(a[j],gen[i])) > surv[i]) surv[i] = fabs(mult_AiX(a[j],gen[i])) + 0.00000000000000000001;
+                if(fabs(mult_AiX(a[j],gen[i])) > surv[i]) surv[i] = fabs(mult_AiX(a[j],gen[i])) + 0.00000000000000000001; // We don't want to divide on zero
                 //surv[i]+=fabs(mult_AiX(a[j],gen[i]));
             }
             sum += 1/(surv[i]);
@@ -113,7 +116,7 @@ int main()
         {
             cross_prob(surv, p1, p2);
 
-            // Finding all childs which can have parents p1 and p2
+            // Finding all children which can have parents p1 and p2
             for(int j=0, t=1, c=0;j<amount_of_all_childs;j++) {
                 if(!c) {
                     for(int i=0;i<t;i++)
@@ -132,7 +135,7 @@ int main()
                 }
             }
 
-            // finding crossover. Will children survive?
+            // finding crossover. Will children survive? Form new_gen
             best_child1 = -1;
             best_child2 = -1;
             nevas_p1 = 0.0;
@@ -170,31 +173,49 @@ int main()
 
             if(best_child1 != -1) {
                 if(best_child2 != -1) {
-                    gen[p1] = future_childs[best_child1];
-                    gen[p2] = future_childs[best_child2];
+                    new_gen[new_gen_count] = future_childs[best_child1];
+                        new_gen_count++;
+                    new_gen[new_gen_count] = future_childs[best_child2];
+                        new_gen_count++;
                 }
                 else {
-                    if(nevas_p1<=nevas_p2) { gen[p2] = future_childs[best_child1]; }
-                    else { gen[p1] = future_childs[best_child1]; }
+                    if(nevas_p1<=nevas_p2) {
+                        new_gen[new_gen_count] = future_childs[best_child1];
+                            new_gen_count++;
+                        new_gen[new_gen_count] = gen[p1];
+                            new_gen_count++;
+                    }
+
+                    else {
+                        new_gen[new_gen_count] = future_childs[best_child1];
+                            new_gen_count++;
+                        new_gen[new_gen_count] = gen[p2];
+                            new_gen_count++;
+                    }
                 }
+            } else {
+                new_gen[new_gen_count] = gen[p1];
+                        new_gen_count++;
+                new_gen[new_gen_count] = gen[p2];
+                        new_gen_count++;
             }
         }
 
-        // Transit to mutation
-        for(int i=0;i<N;i++) {
-            if(i==p1 || i==p2) continue;
-            mutation(gen[i]);
-        }
-
+        gen = new_gen;
         // Artificial increasing entropy of the population
         for(int j=0;j<N;j++) {
             for(int i=j+1;i<N;i++) {
                 int cont=0;
                 for(int o=0;o<dim;o++)
                     if(fabs(gen[j][o]-gen[i][o])<EPS_SYM) cont++;
-                if(cont==dim) extreme_mutation(gen[i]);
+                if(cont==dim) mutation(gen[i]);
             }
         }
+
+        /* // Transit to mutation
+        for(int i=0;i<N;i++) {
+            mutation(gen[i]);
+        } */
 
         // Check generation if there is a solution
         for(int i=0;i<N;i++) {
@@ -230,11 +251,11 @@ void mutation(vector<double> &mem)
     for(int i=0;i<dim;i++)
         if( MUT/(1 + rand() % 100) ) mem[i] = random();
 }
-void extreme_mutation(vector<double> &mem)
+/* void extreme_mutation(vector<double> &mem)
 {
     for(int i=0;i<dim;i++)
         mem[i] = random();
-}
+} */
 
 
 double mult_AiX(vector<double> &ai, vector<double> &x)
