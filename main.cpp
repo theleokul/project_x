@@ -8,10 +8,9 @@
 #define N_GEN 50000 // Amount of generations
 #define N 30 // Amount of members in one generation
 #define D 101 // Max available dimension
-#define MIN -30 // Min value of variable
-#define MAX 30 // Max value of variable
+#define MIN -30 // Min value of variable in matrix
+#define MAX 30 // Max value of variable in matrix
 #define MUT 40 // Coefficient of mutation in percentage
-//#define EPS 500 // It's a value of suitable mistake
 #define EPS2 0.01 // Defect in 1 equation
 #define EPS_SYM 0.1
 using namespace std;
@@ -23,7 +22,7 @@ double mult_AiX(vector<double> &ai, vector<double> &x); // Solves linear equatio
 void cross_prob(vector<double> &surv, int &p1, int &p2); // Chooses the most suitable(with highest surv.) parents (p1 & p2)
 void mutation(vector<double> &mem); // All members go to mutation - their alelles(values) changes randomly
 void extreme_mutation(vector<double> &mem);
-double random(); // Returns a random double number in range of MIN to MAX
+double range_rand(); // Returns a random double number in range of MIN to MAX
 
 int main()
 {
@@ -38,7 +37,7 @@ int main()
     double suit_defect = LONG_MAX; // It's needed for case than solution won't be found but program will keep min defect in this variable
     int cond; // It's for switch
 
-    cout << "Program for solving system of linear equations. Version: 1.02." << endl;
+    cout << "Program for solving system of linear equations. Version: 1.1." << endl;
     loop: // It's the first label for GOTO, of course it's also the last
     cout << "Choose 0-3:" << endl << "1 - Input matrix A from file;" << endl << "2 - Input matrix A in console;" << endl << "3 - Help;" << endl << "0 - Exit." << endl;
     cin >> cond;
@@ -75,7 +74,7 @@ int main()
                 }
                 cout << "It was successfully scanned!" << endl << "Loading..." << endl;
                 break; }
-        case 3: { cout << "This program solves Ax=b systems,\n" << "-- A - square matrix with dimension dim(<=10 - it can be changed in source code), also matrix A is extended (b is included);\n";
+        case 3: { cout << "This program solves Ax=b systems,\n" << "-- A - square matrix, also matrix A is extended (b is included);\n";
                 cout << "-- x - vector-column;\n"; goto loop; }
         case 0: { return 0; }
         default: { cout << "Incorrect input, try again!\n"; goto loop; }
@@ -91,19 +90,17 @@ int main()
     // Creation of first generation
     for(int i=0;i<N;i++)
         for(int j=0;j<dim;j++)
-            gen[i].push_back(random());
+            gen[i].push_back(range_rand());
 
 // There begins iteration process
     for(int m=0;m<N_GEN;m++) {
         // Definition of survival coefficients
-        //if(m==1) cout << m << endl;
         new_gen = gen;
         int new_gen_count=0;
         sum = 0.0;
         for(int i=0;i<N;i++) {
             for(int j=0;j<dim;j++) {
                 if(fabs(mult_AiX(a[j],gen[i])) > surv[i]) surv[i] = fabs(mult_AiX(a[j],gen[i])) + 0.00000000000000000001; // We don't want to divide on zero
-                //surv[i]+=fabs(mult_AiX(a[j],gen[i]));
             }
             sum += 1/(surv[i]);
         }
@@ -138,15 +135,13 @@ int main()
             // finding crossover. Will children survive? Form new_gen
             best_child1 = -1;
             best_child2 = -1;
-            nevas_p1 = 0.0;
+            nevas_p1 = 0.0; // discrepancy
             nevas_p2 = 0.0;
             for(int j=0;j<dim;j++) {
                 if(fabs(mult_AiX(a[j],gen[p1])) > nevas_p1) nevas_p1 = fabs(mult_AiX(a[j],gen[p1]));
-                //nevas_p1+=fabs(mult_AiX(a[j],gen[p1]));
             }
             for(int j=0;j<dim;j++) {
                 if(fabs(mult_AiX(a[j],gen[p2])) > nevas_p2) nevas_p2 = fabs(mult_AiX(a[j],gen[p2]));
-                //nevas_p2+=fabs(mult_AiX(a[j],gen[p2]));
             }
             dmin = nevas_p1;
 
@@ -154,7 +149,6 @@ int main()
                 dtemp = 0;
                 for(int j=0;j<dim;j++)
                     if(fabs(mult_AiX(a[j],future_childs[i])) > dtemp) dtemp = fabs(mult_AiX(a[j],future_childs[i]));
-                    //dtemp+=fabs(mult_AiX(a[j],future_childs[i]));
                 if((dtemp < nevas_p1) && (dtemp < nevas_p2) && (dtemp < dmin)) { dmin = dtemp; best_child1 = i; }
             }
 
@@ -165,7 +159,6 @@ int main()
                     dtemp = 0;
                     for(int j=0;j<dim;j++) {
                         if(fabs(mult_AiX(a[j],future_childs[i])) > dtemp) dtemp = fabs(mult_AiX(a[j],future_childs[i]));
-                        //dtemp+=fabs(mult_AiX(a[j],future_childs[i]));
                     }
                     if((dtemp < nevas_p1) && (dtemp < nevas_p2) && (dtemp < dmin)) { best_child2 = i;}
                 }
@@ -212,11 +205,6 @@ int main()
             }
         }
 
-        /* // Transit to mutation
-        for(int i=0;i<N;i++) {
-            mutation(gen[i]);
-        } */
-
         // Check generation if there is a solution
         for(int i=0;i<N;i++) {
             bad_defect_temp = 0.0;
@@ -249,14 +237,8 @@ int main()
 void mutation(vector<double> &mem)
 {
     for(int i=0;i<dim;i++)
-        if( MUT/(1 + rand() % 100) ) mem[i] = random();
+        if( MUT/(1 + rand() % 100) ) mem[i] = range_rand();
 }
-/* void extreme_mutation(vector<double> &mem)
-{
-    for(int i=0;i<dim;i++)
-        mem[i] = random();
-} */
-
 
 double mult_AiX(vector<double> &ai, vector<double> &x)
 {
@@ -267,7 +249,7 @@ double mult_AiX(vector<double> &ai, vector<double> &x)
     return result;
 }
 
-double random()
+double range_rand()
 {
     return (double)(rand())/RAND_MAX*(MAX - MIN) + MIN;
 }
